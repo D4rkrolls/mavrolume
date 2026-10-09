@@ -45,6 +45,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.window.layout.FoldingFeature
 import androidx.window.layout.WindowInfoTracker
+import camera.mavrolume.app.BuildConfig
 import camera.mavrolume.app.filmsim.Category
 import camera.mavrolume.app.filmsim.FilmRecipes
 import camera.mavrolume.app.filmsim.FilmSettings
@@ -73,7 +74,7 @@ fun ViewfinderScreen(
     var fold by remember { mutableStateOf<FoldingFeature?>(null) }
     LaunchedEffect(Unit) {
         if (!permitted) permission.launch(Manifest.permission.CAMERA)
-        context.activity()?.let { activity -> WindowInfoTracker.getOrCreate(context).windowLayoutInfo(activity).collect { info ->
+        if (!BuildConfig.PHONE_ONLY) context.activity()?.let { activity -> WindowInfoTracker.getOrCreate(context).windowLayoutInfo(activity).collect { info ->
             fold = info.displayFeatures.filterIsInstance<FoldingFeature>().firstOrNull { it.state == FoldingFeature.State.HALF_OPENED || it.isSeparating }
         } }
     }
@@ -85,7 +86,7 @@ fun ViewfinderScreen(
         onDispose { lifecycle.lifecycle.removeObserver(observer) }
     }
     BoxWithConstraints(Modifier.fillMaxSize().background(Color.Black)) {
-        val wide = maxWidth >= 650.dp && maxHeight >= 600.dp
+        val wide = !BuildConfig.PHONE_ONLY && maxWidth >= 650.dp && maxHeight >= 600.dp
         val landscapeWindow = maxWidth > maxHeight
         val density = LocalDensity.current
         val hinge = fold
@@ -416,7 +417,7 @@ private fun FilmEditor(state: CameraUiState,vm: ViewfinderViewModel,advanced: Bo
             if(state.isManualFocus) EditSlider("Focus distance",state.focusDistance,0f..state.maxFocusDistance,vm::setFocusDistance)
             Toggle("Focus peaking",state.showFocusPeaking,vm::setPeaking)
             HorizontalDivider(Modifier.padding(vertical = 16.dp))
-            Text("Mavrolume · 1.1.1\nCreated by d4rkrolls\nIndependent profiles; no vendor affiliation.\nBased on FilmFrame by Ryuhei Yokokawa (MIT).",color = Color.Gray,fontSize = 12.sp)
+            Text("Mavrolume · ${BuildConfig.VERSION_NAME}\nCreated by d4rkrolls\nIndependent profiles; no vendor affiliation.\nBased on FilmFrame by Ryuhei Yokokawa (MIT).",color = Color.Gray,fontSize = 12.sp)
             val context = LocalContext.current
             var license by remember { mutableStateOf(false) }
             TextButton(onClick = { license = !license }) { Text("Open-source license") }

@@ -30,7 +30,7 @@ data class UserPreferences(
     val lastMeteringMode: String = "MULTI",
     val lastLens: String = "WIDE",
     val levelEnabled: Boolean = false,
-    val lastFilmCategory: String = "FILMFRAME",
+    val lastFilmCategory: String = "RECIPES",
     val lastPickerMode: String = "FILM",
 )
 
@@ -73,7 +73,7 @@ class UserPreferencesRepository @Inject constructor(
             lastMeteringMode = prefs[Keys.LAST_METERING_MODE] ?: "MULTI",
             lastLens = prefs[Keys.LAST_LENS] ?: "WIDE",
             levelEnabled = prefs[Keys.LEVEL_ENABLED] ?: false,
-            lastFilmCategory = prefs[Keys.LAST_FILM_CATEGORY] ?: "FILMFRAME",
+            lastFilmCategory = prefs[Keys.LAST_FILM_CATEGORY] ?: "RECIPES",
             lastPickerMode = prefs[Keys.LAST_PICKER_MODE] ?: "FILM",
         )
     }

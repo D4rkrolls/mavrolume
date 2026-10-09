@@ -136,6 +136,6 @@ class GalleryViewModel @Inject constructor(
 
     private fun parseFilename(name: String): Pair<String, String> {
         val parts = name.substringBeforeLast(".").split("_")
-        return (parts.lastOrNull() ?: "DARKMATTER") to ""
+        return (parts.lastOrNull() ?: "MAVROLUME") to ""
     }
 }

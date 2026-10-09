@@ -12,11 +12,26 @@ android {
 
     defaultConfig {
         applicationId = "camera.mavrolume.app"
-        minSdk = 35
+        minSdk = 29
         targetSdk = 35
-        versionCode = 3
-        versionName = "1.1.1"
+        versionCode = 4
+        versionName = "1.2.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    flavorDimensions += "device"
+    productFlavors {
+        create("fold") {
+            dimension = "device"
+            minSdk = 35
+            buildConfigField("boolean", "PHONE_ONLY", "false")
+        }
+        create("phone") {
+            dimension = "device"
+            minSdk = 29
+            applicationIdSuffix = ".phone"
+            buildConfigField("boolean", "PHONE_ONLY", "true")
+        }
     }
 
     buildTypes {
@@ -44,14 +59,13 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
 dependencies {
     implementation("androidx.window:window:1.3.0")
     testImplementation("junit:junit:4.13.2")
-    // Compose BOM — manages all Compose library versions
-    // (This is like having a single package.json entry that pins all React sub-packages)
     val composeBom = platform(libs.compose.bom)
     implementation(composeBom)
 
@@ -82,14 +96,9 @@ dependencies {
     ksp(libs.hilt.compiler)
     implementation(libs.hilt.navigation.compose)
 
-    // Room — local SQLite database (for photo metadata)
-
     // Coroutines — async operations
     implementation(libs.coroutines.core)
     implementation(libs.coroutines.android)
-
-    // GPU Image Processing — for film simulation LUT application
-
 
     // DataStore — persistent preferences
     implementation(libs.datastore.preferences)

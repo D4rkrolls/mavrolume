@@ -213,6 +213,7 @@ class ViewfinderViewModel @Inject constructor(
     private var capture: ImageCapture? = null
     private var effect: LutPreviewEffect? = null
     private var rawSession = false
+    private var liveEffectFailed = false
     private var persistenceJob: Job? = null
     private var focusJob: Job? = null
     private var generation = 0
@@ -275,7 +276,7 @@ class ViewfinderViewModel @Inject constructor(
         rebindCamera()
     }
 
-    private fun bindCamera(allowRaw: Boolean = true) {
+    private fun bindCamera(allowRaw: Boolean = true, allowEffect: Boolean = !liveEffectFailed, chooseResolution: Boolean = true) {
         val p = provider ?: return
         val lifecycle = owner ?: return
         val previewView = view ?: return
@@ -302,7 +303,9 @@ class ViewfinderViewModel @Inject constructor(
             val id = c2.cameraId
             val selector = CameraSelector.Builder().addCameraFilter { list -> list.filter { Camera2CameraInfo.from(it).cameraId == id } }.build()
             val caps = c2.getCameraCharacteristic(CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES) ?: intArrayOf()
-            val raw = ImageCapture.getImageCaptureCapabilities(info).supportedOutputFormats.contains(ImageCapture.OUTPUT_FORMAT_RAW_JPEG)
+            val raw = runCatching {
+                ImageCapture.getImageCaptureCapabilities(info).supportedOutputFormats.contains(ImageCapture.OUTPUT_FORMAT_RAW_JPEG)
+            }.getOrDefault(false)
             val manual = caps.contains(CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES_MANUAL_SENSOR)
             val isoRange = c2.getCameraCharacteristic(CameraCharacteristics.SENSOR_INFO_SENSITIVITY_RANGE)
             val exposureRange = c2.getCameraCharacteristic(CameraCharacteristics.SENSOR_INFO_EXPOSURE_TIME_RANGE)
@@ -310,7 +313,8 @@ class ViewfinderViewModel @Inject constructor(
             val shutterIndices = SHUTTER_SPEEDS.indices.filter { exposureRange?.contains(SHUTTER_SPEEDS[it].first) == true }.ifEmpty { listOf(6) }
             val focusLimit = c2.getCameraCharacteristic(CameraCharacteristics.LENS_INFO_MINIMUM_FOCUS_DISTANCE) ?: 0f
             val map = c2.getCameraCharacteristic(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
-            val sizes = (map?.getOutputSizes(ImageFormat.JPEG)?.toList().orEmpty() + map?.getHighResolutionOutputSizes(ImageFormat.JPEG)?.toList().orEmpty())
+            val sizes = map?.getOutputSizes(ImageFormat.JPEG)?.toList().orEmpty() +
+                runCatching { map?.getHighResolutionOutputSizes(ImageFormat.JPEG)?.toList().orEmpty() }.getOrDefault(emptyList())
             val supports50 = sizes.any { it.width.toLong()*it.height in 45000000L..56000000L }
             val requestedMp = if (_uiState.value.megapixels == 50 && supports50) 50 else 12
             val resolutionSelector = ResolutionSelector.Builder()
@@ -319,19 +323,28 @@ class ViewfinderViewModel @Inject constructor(
                 .build()
             val rotation = previewView.display?.rotation ?: Surface.ROTATION_0
             rawSession = raw && allowRaw && _uiState.value.saveDng
-            val imageCapture = ImageCapture.Builder().setTargetRotation(rotation)
+            val captureBuilder = ImageCapture.Builder().setTargetRotation(rotation)
                 .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY)
                 .setJpegQuality(95)
-                .setResolutionSelector(resolutionSelector)
-                .setOutputFormat(if (rawSession) ImageCapture.OUTPUT_FORMAT_RAW_JPEG else ImageCapture.OUTPUT_FORMAT_JPEG).build()
+                .setOutputFormat(if (rawSession) ImageCapture.OUTPUT_FORMAT_RAW_JPEG else ImageCapture.OUTPUT_FORMAT_JPEG)
+            if (chooseResolution) captureBuilder.setResolutionSelector(resolutionSelector)
+            val imageCapture = captureBuilder.build()
             val preview = Preview.Builder().setTargetRotation(rotation).build().also { it.surfaceProvider = previewView.surfaceProvider }
-            val fx = LutPreviewEffect(lutLoader,_uiState.value.selectedSim) { e ->
-                viewModelScope.launch { error("Live processing failed. Tap Retry to restart the camera.",e) }
-            }
+            val fx = if (allowEffect) LutPreviewEffect(lutLoader,_uiState.value.selectedSim) { e ->
+                viewModelScope.launch {
+                    if (!liveEffectFailed) {
+                        liveEffectFailed = true
+                        error("Live preview effects are unavailable with this camera. Captured photos will still be processed.",e)
+                        bindCamera(allowEffect = false)
+                    }
+                }
+            } else null
             effect = fx
             val viewport = ViewPort.Builder(Rational((outputRatio*10000).toInt(),10000),rotation)
                 .setScaleType(ViewPort.FILL_CENTER).build()
-            val group = UseCaseGroup.Builder().addUseCase(preview).addUseCase(imageCapture).setViewPort(viewport).addEffect(fx).build()
+            val groupBuilder = UseCaseGroup.Builder().addUseCase(preview).addUseCase(imageCapture).setViewPort(viewport)
+            if (fx != null) groupBuilder.addEffect(fx)
+            val group = groupBuilder.build()
             camera = p.bindToLifecycle(lifecycle,selector,group)
             capture = imageCapture
             val actualSize = imageCapture.resolutionInfo?.resolution
@@ -370,11 +383,18 @@ class ViewfinderViewModel @Inject constructor(
                 rawSession = false
                 error("This camera cannot combine RAW and live effects. Using JPEG.",e)
                 viewModelScope.launch { prefsRepo.setSaveDng(false) }
-                bindCamera(false)
+                bindCamera(false,allowEffect,chooseResolution)
             } else if (_uiState.value.megapixels == 50) {
                 _uiState.value = _uiState.value.copy(megapixels = 12)
                 error("50 MP cannot run in this camera configuration. Switched to 12 MP.",e)
-                bindCamera(allowRaw)
+                bindCamera(allowRaw,allowEffect,chooseResolution)
+            } else if (allowEffect) {
+                liveEffectFailed = true
+                error("Live preview effects are unavailable with this camera. Captured photos will still be processed.",e)
+                bindCamera(allowRaw,false,chooseResolution)
+            } else if (chooseResolution) {
+                error("This camera rejected the requested capture size. Using its default size.",e)
+                bindCamera(allowRaw,false,false)
             } else error("Camera setup failed. Tap Retry or choose another camera.",e)
         }
     }
@@ -388,6 +408,7 @@ class ViewfinderViewModel @Inject constructor(
 
     fun selectCamera(id: String) {
         if (_uiState.value.isCapturing || id == _uiState.value.selectedCameraId) return
+        liveEffectFailed = false
         _uiState.value = _uiState.value.copy(selectedCameraId = id,zoom = 1f, exposureMode = ExposureMode.AUTO)
         bindCamera()
     }

@@ -50,7 +50,7 @@ object ExifHelper {
     }
 
     /**
-     * Apply preserved EXIF tags + custom FilmFrame metadata to a saved image URI.
+     * Apply preserved EXIF tags and Mavrolume metadata to a saved image URI.
      *
      * Custom TAG_USER_COMMENT format: "Mavrolume|{simCode}|{ratioLabel}"
      * e.g. "Mavrolume|CHR|XPAN"
@@ -79,7 +79,7 @@ object ExifHelper {
                 // Reset orientation — our output is already rotated correctly
                 exif.setAttribute(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL.toString())
 
-                // Custom FilmFrame metadata
+                // Film recipe and framing metadata
                 exif.setAttribute(ExifInterface.TAG_USER_COMMENT, "Mavrolume|$simCode|$ratioLabel")
                 exif.setAttribute(ExifInterface.TAG_SOFTWARE, "Mavrolume")
 

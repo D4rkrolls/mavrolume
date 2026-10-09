@@ -1,6 +1,6 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
-    <!-- Dark-matter-inspired cosmic web: branching filaments, nodes, and an unlit center. -->
+    <!-- Cosmic web icon. -->
     <path android:pathData="M12,30 C24,23 31,28 40,38 C47,46 52,40 62,31 C72,22 85,25 97,19 M8,74 C23,77 31,68 40,61 C49,53 59,64 69,70 C78,75 86,71 99,82 M28,9 C28,27 33,34 40,38 M78,12 C72,21 69,26 62,31 M19,94 C26,82 31,72 40,61 M91,97 C84,84 78,76 69,70"
         android:fillColor="@android:color/transparent" android:strokeColor="#3D96D5" android:strokeAlpha="0.19" android:strokeWidth="8" android:strokeLineCap="round"/>
     <path android:pathData="M12,30 C24,23 31,28 40,38 C47,46 52,40 62,31 C72,22 85,25 97,19 M8,74 C23,77 31,68 40,61 C49,53 59,64 69,70 C78,75 86,71 99,82 M28,9 C28,27 33,34 40,38 M78,12 C72,21 69,26 62,31 M19,94 C26,82 31,72 40,61 M91,97 C84,84 78,76 69,70"

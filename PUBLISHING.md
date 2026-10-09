@@ -1,14 +1,5 @@
-# Publishing the source
+# Releases
 
-This directory is ready for a new GitHub repository. Review the name and repository visibility, then run:
+Build the Fold and Phone variants with the commands in [BUILD.md](BUILD.md), verify both APK signatures and manifests, then attach them as separate assets to a GitHub release. State each variant's minimum Android version and that camera features depend on device support.
 
-```sh
-git init -b main
-git add .
-git status --short
-git commit -m "Initial Mavrolume source release"
-git remote add origin <your-repository-url>
-git push -u origin main
-```
-
-The repository contains the Gradle wrapper, source, tests, build workflow, MIT license and upstream attribution. It does not contain a signing key, local SDK configuration, build output or APK. Keep production signing credentials outside Git. Run a current trademark search before public release; a web search alone does not establish name availability.
+Keep production signing credentials outside Git. The published debug APKs are for testing. Keep FilmFrame's MIT copyright and license notices in source and APK distributions.
