@@ -2,7 +2,6 @@ package camera.mavrolume.app.camera
 
 import android.graphics.SurfaceTexture
 import android.opengl.GLES11Ext
-import android.opengl.GLES30
 import android.opengl.GLES31
 import android.os.Handler
 import android.util.Log
@@ -55,10 +54,6 @@ class LutPreviewEffect(
         processor.peakingColor = color
     }
 
-    /** Set preview grain intensity (pre-computed: stock × isoFactor × userMultiplier). */
-    fun setGrainIntensity(intensity: Float) {
-        processor.grainIntensity = intensity
-    }
 
     fun setFilmSettings(settings: FilmSettings) { processor.settings = settings }
 
@@ -92,9 +87,6 @@ internal class LutSurfaceProcessor(
     @Volatile
     var peakingColor: FloatArray = floatArrayOf(0.659f, 0.333f, 0.969f) // Purple
 
-    @Volatile
-    var grainIntensity: Float = 0f
-
     @Volatile var settings = FilmSettings()
     @Volatile private var released = false
     private var outputDescriptor: SurfaceOutput? = null
@@ -102,7 +94,6 @@ internal class LutSurfaceProcessor(
     private var outputReturned = true
     private var cleaned = false
     private val originalTransform = FloatArray(16)
-    private var frameCounter: Int = 0
 
     private val glContext = GlContext()
 
@@ -119,15 +110,13 @@ internal class LutSurfaceProcessor(
     private var uCameraLoc = -1
     private var uTransformLoc = -1
 
-    // Pass 2: Peaking + grain shader
+    // Pass 2: grade, shared photographic grain, and focus peaking
     private var peakingProgram = 0
     private var uPeakTexLoc = -1
     private var uPeakTexelSizeLoc = -1
     private var uPeakEnabledLoc = -1
     private var uPeakColorLoc = -1
     private var uPeakThresholdLoc = -1
-    private var uGrainIntensityLoc = -1
-    private var uGrainSeedLoc = -1
 
     // Intermediate FBO for two-pass rendering
     private var fboId = 0
@@ -190,7 +179,7 @@ void main() {
 }
 """
 
-        // -- Fragment shader (Pass 2): LoG focus peaking + film grain --
+        // -- Fragment shader (Pass 2): grade, grain, and focus peaking --
         private val PEAKING_FRAGMENT_SHADER = """
 #version 310 es
 precision highp float;
@@ -200,8 +189,6 @@ uniform vec2 uTexelSize;
 uniform bool uPeakingEnabled;
 uniform vec3 uPeakingColor;
 uniform float uThreshold;
-uniform float uGrainIntensity;
-uniform uint uGrainSeed;
 in vec2 vTexCoord;
 out vec4 fragColor;
 
@@ -210,15 +197,6 @@ out vec4 fragColor;
 
 float luminance(vec3 c) {
     return 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
-}
-
-// PCG-style hash → [0, 1]
-float grainHash(vec2 pos, uint seed) {
-    uint x = uint(pos.x) * 1597334677u + uint(pos.y) * 3812015801u + seed;
-    x = x * 747796405u + 2891336453u;
-    x = ((x >> ((x >> 28u) + 4u)) ^ x) * 277803737u;
-    x = (x >> 22u) ^ x;
-    return float(x) / 4294967295.0;
 }
 
 void main() {
@@ -252,14 +230,6 @@ void main() {
             float strength = clamp((absResponse - uThreshold) / (uThreshold * 2.0), 0.0, 1.0);
             color = mix(color, uPeakingColor, clamp(strength + 0.35, 0.0, 0.9));
         }
-    }
-
-    // Luminance-weighted film grain (applied after peaking so LoG detects real edges)
-    if (uGrainIntensity > 0.0) {
-        float lum = luminance(color);
-        float weight = smoothstep(0.05, 0.25, lum) * (1.0 - smoothstep(0.7, 0.95, lum));
-        float noise = grainHash(gl_FragCoord.xy, uGrainSeed) * 2.0 - 1.0;
-        color = clamp(color + vec3(noise * uGrainIntensity * weight), 0.0, 1.0);
     }
 
     fragColor = vec4(color, 1.0);
@@ -389,10 +359,7 @@ void main() {
                     GLES31.glUniform1f(GLES31.glGetUniformLocation(peakingProgram, name), value)
                 }
                 GLES31.glUniform2f(GLES31.glGetUniformLocation(peakingProgram, "uResolution"), outputWidth.toFloat(), outputHeight.toFloat())
-                GLES31.glUniform1f(GLES31.glGetUniformLocation(peakingProgram, "uSeed"), (frameCounter % 10000).toFloat())
-                // Grain uniforms — frame counter as seed gives animated grain
-                GLES31.glUniform1f(uGrainIntensityLoc, grainIntensity)
-                GLES30.glUniform1ui(uGrainSeedLoc, frameCounter++)
+                GLES31.glUniform1f(GLES31.glGetUniformLocation(peakingProgram, "uSeed"), 17f)
 
                 GLES31.glBindVertexArray(vao)
                 GLES31.glDrawArrays(GLES31.GL_TRIANGLE_STRIP, 0, 4)
@@ -428,8 +395,6 @@ void main() {
         uPeakEnabledLoc = GLES31.glGetUniformLocation(peakingProgram, "uPeakingEnabled")
         uPeakColorLoc = GLES31.glGetUniformLocation(peakingProgram, "uPeakingColor")
         uPeakThresholdLoc = GLES31.glGetUniformLocation(peakingProgram, "uThreshold")
-        uGrainIntensityLoc = GLES31.glGetUniformLocation(peakingProgram, "uGrainIntensity")
-        uGrainSeedLoc = GLES31.glGetUniformLocation(peakingProgram, "uGrainSeed")
 
         // Create OES texture for camera input
         oesTextureId = glContext.createOesTexture()

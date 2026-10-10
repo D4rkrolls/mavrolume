@@ -91,17 +91,7 @@ vec3 mavrolumeGrade(vec3 c) {
     c = mix(c,vec3(mavrolumeLuma(c)),uMute*smoothstep(0.05,0.6,vivid)*0.8);
     return mavrolumeGamut(c);
 }
-float mavrolumeNoise(vec2 cell) {
-    vec3 p = fract(vec3(cell.xyx)*0.1031);
-    p += dot(p,p.yzx+33.33+uSeed*0.001);
-    return fract((p.x+p.y)*p.z)*2.0-1.0;
-}
-float mavrolumeSmoothNoise(vec2 p) {
-    vec2 i = floor(p), f = fract(p);
-    f = f*f*(3.0-2.0*f);
-    return mix(mix(mavrolumeNoise(i),mavrolumeNoise(i+vec2(1,0)),f.x),
-               mix(mavrolumeNoise(i+vec2(0,1)),mavrolumeNoise(i+vec2(1,1)),f.x),f.y);
-}
+${GrainEngine.glsl}
 vec3 mavrolumeInput(vec2 uv) {
     vec3 source = SAMPLE(uv).rgb;
     if (uSoftness > 0.001) {
@@ -146,18 +136,12 @@ vec3 mavrolumeRender(vec2 uv) {
         c += uBloom*halo*vec3(0.34,0.32,0.29)*(1.0-c);
         c += uHalation*max(nearLight-local*0.62,0.0)*vec3(0.38,0.07,0.025)*(1.0-c);
     }
-    float shortEdge = max(1.0,min(uResolution.x,uResolution.y));
-    vec2 cell = uv*uResolution/(uGrainSize*shortEdge/1080.0);
     float lum = mavrolumeLuma(c);
     if (uGrain > 0.001) {
-        // Fine irregular clumps plus larger low-amplitude variation; no square grain cells.
-        float fine = mavrolumeNoise(floor(cell));
-        float mid = mavrolumeSmoothNoise(cell*0.49+7.17);
-        float coarse = mavrolumeSmoothNoise(cell*0.23+19.61);
-        float texture = fine*0.62+mid*0.29+coarse*0.09;
-        float sensitivity = mix(0.58,1.0,smoothstep(0.02,0.38,lum))
-            * (1.0-0.58*smoothstep(0.78,1.0,lum));
-        c += texture*uGrain*0.24*sensitivity;
+        float density = photographicGrain(uv,uGrainSize,uResolution);
+        float sensitivity = mix(0.65,1.0,smoothstep(0.02,0.38,lum))
+            * (1.0-0.38*smoothstep(0.82,1.0,lum));
+        c += vec3(density*uGrain*0.22*sensitivity);
     }
     // Saturated colours acquire slight density instead of turning neon.
     float chroma = max(c.r,max(c.g,c.b))-min(c.r,min(c.g,c.b));
