@@ -21,7 +21,7 @@ data class FilmSettings(
     val aberration: Float = 0f,
 ) {
     fun uniforms(sim: FilmSimulation): Map<String, Float> = linkedMapOf(
-        "uLegacy" to if(sim.category == Category.RECIPES) 1f else 0f,
+        "uLegacy" to 0f,
         "uStrength" to strength, "uSaturation" to saturation,
         "uTemperature" to temperature, "uTint" to tint,
         "uGrain" to grain, "uGrainSize" to grainSize,
@@ -42,7 +42,24 @@ data class FilmSettings(
     fun encode(): String = listOf(strength,saturation,temperature,tint,grain,grainSize,bloom,halation,
         exposure,brightness,contrast,dynamicRange,mids,fade,mute,softness,aberration).joinToString(",")
     companion object {
-        fun forProfile(sim: FilmSimulation) = FilmRecipes.apply(sim.recipes.substringBefore(','))
+        fun forProfile(sim: FilmSimulation): FilmSettings {
+            val base = FilmRecipes.apply(sim.recipes.substringBefore(','))
+            return when (sim) {
+                FilmSimulation.DAYBREAK -> base.copy(contrast = .93f, dynamicRange = .2f, grain = .16f)
+                FilmSimulation.HONEY -> base.copy(contrast = 1.14f, saturation = 1.08f, temperature = .13f, grain = .22f)
+                FilmSimulation.PRISM -> base.copy(contrast = 1.18f, saturation = 1.13f, grain = .21f)
+                FilmSimulation.AFTERGLOW -> base.copy(contrast = 1.14f, temperature = .04f, grain = .26f)
+                FilmSimulation.NIGHTGLASS -> base.copy(contrast = 1.18f, brightness = -.025f, grain = .32f)
+                FilmSimulation.RAIN -> base.copy(contrast = .98f, saturation = .88f, dynamicRange = .12f, grain = .18f)
+                FilmSimulation.PATINA -> base.copy(contrast = 1.08f, saturation = .92f, grain = .34f)
+                FilmSimulation.SILVER -> base.copy(contrast = 1.08f, grain = .28f)
+                FilmSimulation.GRAPHITE -> base.copy(contrast = 1.24f, brightness = -.025f, grain = .42f)
+                FilmSimulation.COAST -> base.copy(contrast = 1.06f, saturation = 1.1f, grain = .17f)
+                FilmSimulation.STUDY_DARK_FORM, FilmSimulation.STUDY_NIGHT_SILVER -> base.copy(contrast = 1.18f, grain = .32f)
+                FilmSimulation.STUDY_SOFT_SILVER, FilmSimulation.STUDY_SHADE_SILVER -> base.copy(contrast = .94f, grain = .23f)
+                else -> base
+            }
+        }
         fun decode(text: String?): FilmSettings = runCatching {
             val v = requireNotNull(text).split(',').map { it.toFloat().also { n -> require(n.isFinite()) } }
             require(v.size == 15 || v.size == 17)

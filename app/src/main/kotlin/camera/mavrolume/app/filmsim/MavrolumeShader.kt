@@ -73,11 +73,11 @@ vec3 mavrolumeGrade(vec3 c) {
     float tone = mavrolumeCurve(baseY,uProfileContrast,uToe,uShoulder,uProfileLift);
     vec3 p = vec3(tone);
     if(!monochrome) {
-        p += (c-y)*sat*mix(0.8,1.0,smoothstep(0.0,0.18,y));
+        p += (c-y)*sat*mix(0.68,1.0,smoothstep(0.02,0.32,y));
         vec3 tint = vec3(uProfileWarmth+uProfileTint*0.5,-uProfileTint,-uProfileWarmth+uProfileTint*0.5);
         tint += mix(vec3(uShadowR,uShadowG,uShadowB),vec3(uHighlightR,uHighlightG,uHighlightB),smoothstep(0.2,0.8,y));
         tint -= mavrolumeLuma(tint);
-        p += tint*(4.0*y*(1.0-y))*(1.0-0.75*skin);
+        p += tint*(4.0*y*(1.0-y))*(1.0-0.7*skin)*1.35;
     }
     c = mix(c,mavrolumeGamut(p),uStrength);
     y = mavrolumeLuma(c);
@@ -154,10 +154,10 @@ vec3 mavrolumeRender(vec2 uv) {
         float fine = mavrolumeNoise(floor(cell));
         float mid = mavrolumeSmoothNoise(cell*0.49+7.17);
         float coarse = mavrolumeSmoothNoise(cell*0.23+19.61);
-        float texture = fine*0.56+mid*0.31+coarse*0.13;
-        float sensitivity = mix(0.32,1.0,smoothstep(0.02,0.45,lum))
-            * (1.0-0.76*smoothstep(0.72,1.0,lum));
-        c += texture*uGrain*0.16*sensitivity;
+        float texture = fine*0.62+mid*0.29+coarse*0.09;
+        float sensitivity = mix(0.58,1.0,smoothstep(0.02,0.38,lum))
+            * (1.0-0.58*smoothstep(0.78,1.0,lum));
+        c += texture*uGrain*0.24*sensitivity;
     }
     // Saturated colours acquire slight density instead of turning neon.
     float chroma = max(c.r,max(c.g,c.b))-min(c.r,min(c.g,c.b));

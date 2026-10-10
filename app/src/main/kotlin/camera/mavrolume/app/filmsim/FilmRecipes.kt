@@ -9,12 +9,12 @@ object FilmRecipes {
         val softness: Float,val aberration: Float)
     private val texture = listOf(
         Texture(0f,0.8f,0f,0f,0f,0f),
-        Texture(.045f,0.9f,0f,0f,.02f,0f),
-        Texture(.075f,1.1f,.012f,.012f,.05f,0f),
-        Texture(.12f,1.35f,.035f,.025f,.10f,.01f),
-        Texture(.20f,1.8f,.09f,.07f,.18f,.035f),
-        Texture(.32f,2.5f,.17f,.14f,.28f,.07f),
-        Texture(.48f,3.4f,.28f,.24f,.42f,.12f),
+        Texture(.13f,0.95f,0f,0f,.02f,0f),
+        Texture(.19f,1.15f,.012f,.012f,.05f,0f),
+        Texture(.27f,1.4f,.035f,.025f,.10f,.01f),
+        Texture(.38f,1.85f,.09f,.07f,.18f,.035f),
+        Texture(.53f,2.55f,.17f,.14f,.28f,.07f),
+        Texture(.7f,3.45f,.28f,.24f,.42f,.12f),
     )
     fun apply(recipe: String): FilmSettings {
         val q = texture[qualities.indexOf(recipe.substringBefore('-')).coerceAtLeast(0)]
