@@ -46,6 +46,7 @@ import java.io.File
 import java.io.ByteArrayOutputStream
 import java.util.Locale
 import java.util.concurrent.TimeUnit
+import kotlin.math.roundToInt
 import javax.inject.Inject
 
 /** Only cameras exposed by CameraX are listed; physical lens routing remains vendor-controlled. */
@@ -152,6 +153,7 @@ data class CameraUiState(
     val selectedSim: FilmSimulation = FilmSimulation.DAYBREAK,
     // Auto exposure
     val exposureCompensation: Int = 0,
+    val requestedExposureEv: Float = 0f,
     val exposureCompRange: IntRange = -12..12,
     // Exposure mode
     val exposureMode: ExposureMode = ExposureMode.AUTO,
@@ -226,6 +228,7 @@ class ViewfinderViewModel @Inject constructor(
             val p = prefsRepo.preferencesFlow.first()
             _uiState.value = _uiState.value.copy(
                 selectedSim = FilmSimulation.fromSaved(p.lastFilmSim),
+                requestedExposureEv = FilmSimulation.fromSaved(p.lastFilmSim).meteredEv,
                 aspectRatio = AspectRatio.entries.find { it.name == p.lastAspectRatio } ?: AspectRatio.RATIO_4_3,
                 filmSettings = if (p.filmSettings == null) FilmSettings.forProfile(FilmSimulation.fromSaved(p.lastFilmSim)) else FilmSettings.decode(p.filmSettings),
                 saveOriginal = p.saveOriginal, saveDng = p.saveDng,
@@ -363,7 +366,9 @@ class ViewfinderViewModel @Inject constructor(
                 zoom = _uiState.value.zoom.coerceIn(zoom?.minZoomRatio ?: 1f,zoom?.maxZoomRatio ?: 1f),
                 exposureCompRange = exposure.exposureCompensationRange.lower..exposure.exposureCompensationRange.upper,
                 exposureStep = exposure.exposureCompensationStep.toFloat(),
-                exposureCompensation = _uiState.value.exposureCompensation.coerceIn(exposure.exposureCompensationRange.lower,exposure.exposureCompensationRange.upper),
+                exposureCompensation = if (exposure.exposureCompensationStep.toFloat() > 0f)
+                    (_uiState.value.requestedExposureEv / exposure.exposureCompensationStep.toFloat()).roundToInt()
+                        .coerceIn(exposure.exposureCompensationRange.lower,exposure.exposureCompensationRange.upper) else 0,
                 maxFocusDistance = focusLimit,
                 focusDistance = _uiState.value.focusDistance.coerceIn(0f,focusLimit),
                 isoStops = isoStops, iso = _uiState.value.iso.coerceIn(isoStops.first(),isoStops.last()),
@@ -373,7 +378,7 @@ class ViewfinderViewModel @Inject constructor(
             )
             imageCapture.flashMode = if (info.hasFlashUnit()) _uiState.value.flashMode else ImageCapture.FLASH_MODE_OFF
             camera?.cameraControl?.setZoomRatio(_uiState.value.zoom)
-            setExposureCompensation(_uiState.value.exposureCompensation)
+            applyExposureCompensation()
             applyCameraSettings()
             updateEffect()
             observedInfo = info
@@ -429,7 +434,8 @@ class ViewfinderViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(flashMode = mode)
     }
     fun selectSim(sim: FilmSimulation) {
-        _uiState.value = _uiState.value.copy(selectedSim = sim)
+        _uiState.value = _uiState.value.copy(selectedSim = sim, requestedExposureEv = sim.meteredEv)
+        applyExposureCompensation()
         setFilmSettings(FilmSettings.forProfile(sim))
         viewModelScope.launch { prefsRepo.setLastFilmSim(sim.name) }
     }
@@ -454,12 +460,21 @@ class ViewfinderViewModel @Inject constructor(
     fun setExposureCompensation(index: Int) {
         val range = _uiState.value.exposureCompRange
         val v = index.coerceIn(range.first,range.last)
-        camera?.cameraControl?.setExposureCompensationIndex(v)
-        _uiState.value = _uiState.value.copy(exposureCompensation = v)
+        _uiState.value = _uiState.value.copy(requestedExposureEv = v * _uiState.value.exposureStep)
+        applyExposureCompensation()
+    }
+    private fun applyExposureCompensation() {
+        val state = _uiState.value
+        val index = if (state.exposureStep > 0f)
+            (state.requestedExposureEv / state.exposureStep).roundToInt()
+                .coerceIn(state.exposureCompRange.first,state.exposureCompRange.last) else 0
+        _uiState.value = state.copy(exposureCompensation = index)
+        if (state.exposureMode == ExposureMode.AUTO) camera?.cameraControl?.setExposureCompensationIndex(index)
     }
     fun setExposureMode(mode: ExposureMode) {
         if (mode == ExposureMode.MANUAL && !_uiState.value.manualCapable) return
         _uiState.value = _uiState.value.copy(exposureMode = mode)
+        if (mode == ExposureMode.AUTO) applyExposureCompensation()
         capture?.flashMode = if (mode == ExposureMode.MANUAL) ImageCapture.FLASH_MODE_OFF else _uiState.value.flashMode
         applyCameraSettings()
     }

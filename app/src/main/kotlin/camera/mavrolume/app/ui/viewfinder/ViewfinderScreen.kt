@@ -208,6 +208,7 @@ private fun CameraControls(state: CameraUiState,vm: ViewfinderViewModel,gallery:
             Text("EV",fontSize = 10.sp,color = Cream)
             Slider(value = state.exposureCompensation.toFloat(),onValueChange = { vm.setExposureCompensation(it.roundToInt()) },valueRange = state.exposureCompRange.first.toFloat()..state.exposureCompRange.last.toFloat(),modifier = Modifier.weight(1f).padding(horizontal = 12.dp))
             Text(String.format(Locale.US,"%+.1f",state.exposureCompensation*state.exposureStep),color = Cream,fontSize = 11.sp)
+            TextButton(onClick = { vm.setExposureCompensation(0) }, enabled = state.exposureCompensation != 0) { Text("0 EV",color = Lilac,fontSize = 11.sp) }
         }
         Row(Modifier.fillMaxWidth().padding(horizontal = 24.dp),horizontalArrangement = Arrangement.SpaceEvenly,verticalAlignment = Alignment.CenterVertically) {
             TextButton(onClick = gallery,enabled = !state.isCapturing) { Text("Library",color = Cream) }
@@ -300,7 +301,11 @@ private fun ProPanel(state: CameraUiState, vm: ViewfinderViewModel, gallery: () 
                         val stops = state.shutterIndices
                         if (stops.size > 1) EditSlider("Shutter ${state.shutterSpeedLabel}", stops.indexOf(state.shutterSpeedIndex).coerceAtLeast(0).toFloat(), 0f..stops.lastIndex.toFloat()) { vm.setShutterSpeedIndex(stops[it.roundToInt()]) }
                     } else if (state.exposureCompRange.first < state.exposureCompRange.last) {
-                        EditSlider("EV ${String.format(Locale.US, "%+.1f", state.exposureCompensation * state.exposureStep)}", state.exposureCompensation.toFloat(), state.exposureCompRange.first.toFloat()..state.exposureCompRange.last.toFloat()) { vm.setExposureCompensation(it.roundToInt()) }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("Metered EV ${String.format(Locale.US, "%+.1f", state.exposureCompensation * state.exposureStep)}",color = Cream,fontSize = 11.sp)
+                            TextButton(onClick = { vm.setExposureCompensation(0) },enabled = state.exposureCompensation != 0) { Text("0 EV",color = Lilac,fontSize = 11.sp) }
+                        }
+                        EditSlider("Exposure bias", state.exposureCompensation.toFloat(), state.exposureCompRange.first.toFloat()..state.exposureCompRange.last.toFloat()) { vm.setExposureCompensation(it.roundToInt()) }
                     }
                     EditSlider("Brightness", f.brightness, -0.3f..0.3f) { vm.setFilmSettings(f.copy(brightness = it)) }
                     EditSlider("Contrast", f.contrast, 0.5f..1.5f) { vm.setFilmSettings(f.copy(contrast = it)) }
@@ -379,7 +384,11 @@ private fun FilmEditor(state: CameraUiState,vm: ViewfinderViewModel,advanced: Bo
             EditSlider("Color fringing",f.aberration,0f..1f) { vm.setFilmSettings(f.copy(aberration = it)) }
             EditSlider("Bloom",f.bloom,0f..1f) { vm.setFilmSettings(f.copy(bloom = it)) }
             EditSlider("Halation",f.halation,0f..1f) { vm.setFilmSettings(f.copy(halation = it)) }
-            EditSlider("Exposure",f.exposure,-2f..2f) { vm.setFilmSettings(f.copy(exposure = it)) }
+            EditSlider("Image exposure",f.exposure,-2f..2f) { vm.setFilmSettings(f.copy(exposure = it)) }
+            if (state.exposureMode == ExposureMode.AUTO && state.exposureStep > 0f) Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("Metered EV ${String.format(Locale.US,"%+.1f",state.exposureCompensation*state.exposureStep)}",color = Cream,fontSize = 11.sp)
+                TextButton(onClick = { vm.setExposureCompensation(0) },enabled = state.exposureCompensation != 0) { Text("0 EV",color = Lilac,fontSize = 11.sp) }
+            }
             EditSlider("Brightness",f.brightness,-0.3f..0.3f) { vm.setFilmSettings(f.copy(brightness = it)) }
             EditSlider("Contrast",f.contrast,0.5f..1.5f) { vm.setFilmSettings(f.copy(contrast = it)) }
             EditSlider("Dynamic range",f.dynamicRange,-1f..1f) { vm.setFilmSettings(f.copy(dynamicRange = it)) }

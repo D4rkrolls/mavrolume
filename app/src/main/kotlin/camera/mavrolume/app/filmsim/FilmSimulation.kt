@@ -46,6 +46,17 @@ enum class FilmSimulation(
     STUDY_PAPER_SILVER("Paper Silver 200", "PH14", "dense silver with gentler white paper", 0f, 1.28f, 0f, 0.003f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, "200-N", 0.05f, 0.32f, 0f, 0f, 0.36f, 0.54f),
     STUDY_NIGHT_SILVER("Night Silver 200", "PH15", "deep dark planes and luminous edges", 0f, 1.44f, 0f, 0.001f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, "200-N", 0.015f, 0.24f, 0f, 0f, 0.36f, 0.54f);
     val category get() = if(name.startsWith("STUDY_")) Category.STUDIES else Category.RECIPES
+    /** Auto-exposure compensation applied after the camera meters the scene. */
+    val meteredEv: Float get() = when (this) {
+        AFTERGLOW, RAIN, PATINA, GRAPHITE, BLUE_ROOM -> -0.3f
+        NIGHTGLASS -> -0.7f
+        STUDY_SUN_SHADOW, STUDY_COLOR_SHADE, STUDY_DUSK_COLOR,
+        STUDY_HUMAN_SILVER, STUDY_NEON_COLOR, STUDY_STREET_SILVER,
+        STUDY_SHADE_SILVER, STUDY_PAPER_SILVER -> -0.3f
+        STUDY_DENSE_COLOR, STUDY_NIGHT_LAMPS, STUDY_DARK_FORM,
+        STUDY_NIGHT_SILVER -> -0.7f
+        else -> 0f
+    }
     val defaultGrainIntensity get() = 0.04f
     val assetPath get() = "generated/identity"
     companion object {
