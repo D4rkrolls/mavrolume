@@ -4,6 +4,7 @@ import android.app.Application
 import android.net.Uri
 import android.provider.MediaStore
 import android.util.Log
+import camera.mavrolume.app.filmsim.FilmSimulation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -136,6 +137,8 @@ class GalleryViewModel @Inject constructor(
 
     private fun parseFilename(name: String): Pair<String, String> {
         val parts = name.substringBeforeLast(".").split("_")
-        return (parts.lastOrNull() ?: "MAVROLUME") to ""
+        val code = parts.lastOrNull()
+        val preset = FilmSimulation.entries.firstOrNull { it.shortCode == code }
+        return (preset?.displayName ?: "Mavrolume") to ""
     }
 }

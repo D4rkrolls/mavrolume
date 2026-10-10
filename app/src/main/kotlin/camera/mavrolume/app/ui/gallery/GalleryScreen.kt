@@ -6,6 +6,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.rememberTransformableState
 import androidx.compose.foundation.gestures.transformable
@@ -361,6 +362,7 @@ private fun DetailPager(
 
 // ── Zoomable image (pinch-to-zoom, pan, double-tap reset) ───────────
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ZoomableImage(
     photo: GalleryPhoto,
@@ -396,7 +398,7 @@ private fun ZoomableImage(
                     onTap()
                 }
             }
-            .transformable(state = transformState),
+            .transformable(state = transformState, canPan = { scale > 1f }),
         contentAlignment = Alignment.Center,
     ) {
         AsyncImage(

@@ -55,8 +55,21 @@ data class FilmSettings(
                 FilmSimulation.SILVER -> base.copy(contrast = 1.08f, grain = .28f)
                 FilmSimulation.GRAPHITE -> base.copy(contrast = 1.24f, brightness = -.025f, grain = .42f)
                 FilmSimulation.COAST -> base.copy(contrast = 1.06f, saturation = 1.1f, grain = .17f)
-                FilmSimulation.STUDY_DARK_FORM, FilmSimulation.STUDY_NIGHT_SILVER -> base.copy(contrast = 1.18f, grain = .32f)
-                FilmSimulation.STUDY_SOFT_SILVER, FilmSimulation.STUDY_SHADE_SILVER -> base.copy(contrast = .94f, grain = .23f)
+                FilmSimulation.STUDY_SUN_SHADOW -> base.copy(contrast = 1.12f, saturation = .96f, temperature = .045f, grain = .2f, grainSize = 1.1f, dynamicRange = -.08f)
+                FilmSimulation.STUDY_COLOR_SHADE -> base.copy(contrast = 1.02f, saturation = .88f, temperature = -.035f, grain = .23f, grainSize = 1.2f, fade = .08f)
+                FilmSimulation.STUDY_DUSK_COLOR -> base.copy(contrast = 1.08f, saturation = .9f, temperature = .08f, grain = .28f, grainSize = 1.45f, fade = .1f)
+                FilmSimulation.STUDY_DENSE_COLOR -> base.copy(contrast = 1.16f, saturation = 1.08f, grain = .28f, grainSize = 1.3f, dynamicRange = -.12f)
+                FilmSimulation.STUDY_OPEN_LIGHT -> base.copy(contrast = .9f, saturation = .92f, temperature = .06f, grain = .18f, dynamicRange = .2f, fade = .06f)
+                FilmSimulation.STUDY_HUMAN_SILVER -> base.copy(contrast = 1.02f, grain = .28f, grainSize = 1.4f, dynamicRange = .12f)
+                FilmSimulation.STUDY_NEON_COLOR -> base.copy(contrast = 1.12f, saturation = 1.07f, grain = .29f, grainSize = 1.5f, dynamicRange = -.1f)
+                FilmSimulation.STUDY_NIGHT_LAMPS -> base.copy(contrast = 1.09f, saturation = .86f, grain = .4f, grainSize = 1.9f, brightness = -.025f)
+                FilmSimulation.STUDY_STREET_SILVER -> base.copy(contrast = 1.14f, grain = .34f, grainSize = 1.65f, dynamicRange = -.08f)
+                FilmSimulation.STUDY_DOCUMENTARY -> base.copy(contrast = .96f, grain = .23f, grainSize = 1.2f, dynamicRange = .1f)
+                FilmSimulation.STUDY_SOFT_SILVER -> base.copy(contrast = .88f, grain = .2f, grainSize = 1.1f, fade = .07f, dynamicRange = .2f)
+                FilmSimulation.STUDY_SHADE_SILVER -> base.copy(contrast = .98f, grain = .27f, grainSize = 1.4f, brightness = -.015f)
+                FilmSimulation.STUDY_DARK_FORM -> base.copy(contrast = 1.22f, grain = .36f, grainSize = 1.7f, dynamicRange = -.14f)
+                FilmSimulation.STUDY_PAPER_SILVER -> base.copy(contrast = 1.04f, grain = .31f, grainSize = 1.55f, fade = .045f)
+                FilmSimulation.STUDY_NIGHT_SILVER -> base.copy(contrast = 1.24f, grain = .44f, grainSize = 2f, brightness = -.03f)
                 else -> base
             }
         }
